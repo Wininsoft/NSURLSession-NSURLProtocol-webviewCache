@@ -126,7 +126,7 @@ static NSSet *TURLSessionFilterUrlPre;
             TURLSessionFilterUrlPreObject = [[NSObject alloc] init];
         });
         
-        [self setFilterUrlPres:[NSSet setWithObject:@"http://api.233.com"]];
+        [self setFilterUrlPres:[NSSet setWithObject:@"http://222.73.234.120:10001"]];
     }
 }
 - (NSURLSession *)session {
@@ -190,12 +190,27 @@ static NSSet *TURLSessionFilterUrlPre;
 #pragma mark - override
 
 +(BOOL)canInitWithRequest:(NSURLRequest *)request {
+    if([request.URL.absoluteString containsString:@"/Resource/Get?id="]&&[request.URL.absoluteString containsString:@"version"])
+        return YES;
+    if([request.URL.absoluteString containsString:@"/Resources/"]&&[request.URL.absoluteString containsString:@"version"])
+        return YES;
+    if([request.URL.absoluteString containsString:@"/DataService/GetImageData?"]&&[request.URL.absoluteString containsString:@"&rowVersion="])
+        return YES;
+    if([request.URL.absoluteString containsString:@"/DataService/PreviewFile?"]&&[request.URL.absoluteString containsString:@"&rowVersion="])
+        return YES;
+    if([request.URL.absoluteString containsString:@"/DataService/GetEntity?"]&&[request.URL.absoluteString containsString:@"&rowVersion="])
+        return YES;
+    if([request.URL.absoluteString containsString:@"/FileService/Thumbnail?"]&&[request.URL.absoluteString containsString:@"&rowVersion="])
+        return YES;
+    if([request.URL.absoluteString containsString:@"/FileService/Download?"])
+        return YES;
     
-    if ([request valueForHTTPHeaderField:KProtocolHttpHeadKey] == nil && ![self p_isFilterWithUrlString:request.URL.absoluteString]) {
+    if ([self p_isFilterWithUrlString:request.URL.absoluteString]&&[request.URL.absoluteString containsString:@"&rowVersion"]) {
         //拦截请求头中包含KProtocolHttpHeadKey的请求
         //        NSLog(@"request url:%@",request.URL.absoluteString);
         return YES;
     }
+    
     return NO;
 }
 
@@ -225,11 +240,13 @@ static NSSet *TURLSessionFilterUrlPre;
             [self.client URLProtocolDidFinishLoading:self];
         }
         
-        
+        NSLog([@"Cached:" stringByAppendingString:self.request.URL.absoluteString]);
     } else {
+        
+        NSLog([@"Requesting:" stringByAppendingString:self.request.URL.absoluteString]);
         NSMutableURLRequest *request = [self.request mutableCopyWorkaround];
         request.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
-//        NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:self.request.URL.absoluteString]];
+        //        NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:self.request.URL.absoluteString]];
         [request setValue:@"test" forHTTPHeaderField:KProtocolHttpHeadKey];
         self.downloadTask = [self.session dataTaskWithRequest:request];
         [self.downloadTask resume];
@@ -286,7 +303,7 @@ static NSSet *TURLSessionFilterUrlPre;
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
     //    下载完成之后的处理
-   
+    
     if (error) {
         NSLog(@"error url = %@",task.currentRequest.URL.absoluteString);
         [self.client URLProtocol:self didFailWithError:error];
